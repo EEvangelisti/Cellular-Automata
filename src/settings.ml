@@ -38,7 +38,7 @@ let color_scheme = add_argument
 
 let color_scheme_database = add_argument
   ~lbl:"--color-scheme-database"
-  ~ini:"Resources/color_schemes.db"
+  ~ini:"resources/color_schemes.db"
   ~arg:(fun r -> Set_string r)
   ~str
   ~def:"Color scheme database"
@@ -94,7 +94,7 @@ let seed = add_argument
 
 let plugin_folder = add_argument
   ~lbl:"--plugin-folder"
-  ~ini:"Resources/Plugins"
+  ~ini:"resources/Plugins"
   ~arg:(fun r -> Set_string r)
   ~str
   ~def:"Path to plugin folder"
