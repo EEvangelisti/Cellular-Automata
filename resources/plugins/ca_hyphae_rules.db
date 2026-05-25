@@ -1,0 +1,13 @@
+# G = growth probability
+# B = branch probability
+# A = minimum age before branching
+# D = number of internal directions
+# W = angular wiggle at each step
+# J = branch angle jitter
+# M = maximum displayed age
+
+AUTOMATON "STRAIGHT": G0.95/B0.010/A6/D64/W0/J2/M180
+AUTOMATON "SLIGHTLY CURVED": G0.90/B0.015/A6/D64/W1/J4/M180
+AUTOMATON "EXPLORATORY": G0.85/B0.025/A5/D64/W2/J6/M180
+AUTOMATON "BRANCHED": G0.90/B0.060/A5/D64/W2/J8/M180
+AUTOMATON "DENSE": G0.95/B0.090/A4/D64/W3/J8/M180
