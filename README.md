@@ -143,8 +143,6 @@ Exact options depend on the settings exposed in the current version.
 
 ## Repository structure
 
-Repository structure
-
 A typical source tree contains:
 
 ```
