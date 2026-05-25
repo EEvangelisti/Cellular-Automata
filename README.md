@@ -8,6 +8,18 @@ The program combines a lightweight graphical interface, Cairo-based rendering, a
 
 ---
 
+## Status
+
+This repository is maintained as a lightweight exploratory framework for cellular automata and rule-based spatial models. It is not intended as a fully calibrated biological simulator. The hyphal-growth examples are toy models designed to prototype local rules before experimental parameterization.
+
+---
+
+## Scientific motivation
+
+This framework is currently being extended to prototype minimal rule-based models of filamentous network growth. In this context, active hyphal tips can be represented as agent-like entities carrying polarity, age, and branching competence. Such models provide a practical way to explore how local growth rules may generate tissue-scale network architectures.
+
+---
+
 ## General principle
 
 Cellular automata are discrete models in which a grid of cells evolves over time according to local rules. Each cell has a state, and each new generation is computed from the current state of the grid and, typically, the state of neighboring cells.
