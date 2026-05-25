@@ -29,7 +29,7 @@ In **Automates**, the universe is represented as a two-dimensional matrix. At ea
 - Command-line settings for grid size, seed, speed, plugins, and display options
 - Support for automata with standard local rules as well as more specialized update logic
 
-![Example: coral-like growth](live_coral_automaton.gif)
+![Example: coral-like growth](images/live_coral_automaton.gif)
 
 ---
 
