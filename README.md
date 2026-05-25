@@ -84,7 +84,7 @@ For example, a hyphal-growth plugin can represent active hyphal tips as agent-li
 
 The current version requires:
 
-- OCaml
+- a functional OCaml system
 - `ocamlfind`
 - `lablgtk3`
 - `cairo2`
