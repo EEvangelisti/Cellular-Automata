@@ -185,12 +185,11 @@ let update_timeout () =
   Gaux.may ~f:Glib.Timeout.remove !curr_timeout;
   counter := 0;
   let ca = GUI.Automaton.get_active () in
+  let folder_base = get_folder_name ca in
   curr_timeout := Some (Glib.Timeout.add 
     ~ms:GUI.ca_speed#value_as_int
-    ~callback:(fun () -> 
-      get_folder_name ca
-      |> (fun folder -> one_pass ~folder ca)
-      |> with_ca_params))
+    ~callback:(fun () -> one_pass ~folder:folder_base ca |> with_ca_params)
+  )
 
 (* Charge toutes les extensions disponibles. *)
 let load_plugins () =
