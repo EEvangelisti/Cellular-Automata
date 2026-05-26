@@ -51,6 +51,12 @@ struct
   let in_bounds r c =
     r >= 0 && r < P.n_rows && c >= 0 && c < P.n_cols
 
+ let wrap x n =
+    ((x mod n) + n) mod n
+
+  let wrap_coord (r, c) =
+    (wrap r P.n_rows, wrap c P.n_cols)
+
   let normalize_angle a =
     let n = max 8 P.n_dirs in
     ((a mod n) + n) mod n
@@ -193,11 +199,9 @@ struct
   let try_grow old_agents new_agents_ref (r, c) a =
     if a.tip && Random.float 1.0 < P.growth_prob then begin
       let dr, dc = offset_of_angle a.angle in
-      let nr = r + dr in
-      let nc = c + dc in
-      let target = (nr, nc) in
+      let target = wrap_coord (r + dr, c + dc) in
 
-      if in_bounds nr nc && not (XYMap.mem target !new_agents_ref) then begin
+      if not (XYMap.mem target !new_agents_ref) then begin
         (* The old tip becomes a non-tip segment. *)
         new_agents_ref :=
           update_agent (r, c)
@@ -231,11 +235,9 @@ struct
     then begin
       let bangle = branch_angle a.angle in
       let dr, dc = offset_of_angle bangle in
-      let nr = r + dr in
-      let nc = c + dc in
-      let target = (nr, nc) in
+      let target = wrap_coord (r + dr, c + dc) in
 
-      if in_bounds nr nc && not (XYMap.mem target !new_agents_ref) then begin
+      if not (XYMap.mem target !new_agents_ref) then begin
         (* Create branch tip. *)
         new_agents_ref :=
           add_agent target
@@ -259,9 +261,9 @@ struct
         let dr2, dc2 = offset_of_angle a2 in
 
         new_agents_ref :=
-          inhibit (r + dr1, c + dc1) !new_agents_ref;
+          inhibit (wrap_coord (r + dr1, c + dc1)) !new_agents_ref;
         new_agents_ref :=
-          inhibit (r + dr2, c + dc2) !new_agents_ref
+          inhibit (wrap_coord (r + dr2, c + dc2)) !new_agents_ref
       end
     end
 
