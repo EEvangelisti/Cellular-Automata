@@ -84,7 +84,7 @@ This makes it possible to prototype simple rule-based models of growth, branchin
 
 For example, a hyphal-growth plugin can represent active hyphal tips as agent-like entities that extend, branch, reorient, or stop according to local rules. Such models are deliberately minimal, but they provide a useful way to formalize assumptions and explore how network-like patterns can emerge from local decisions.
 
-![Example: toy hyphal growth model](images/hyphal_growth_toy_model.png)
+![Example: toy hyphal growth model](images/hyphal_growth_toy_model.gif)
 
 ---
 
