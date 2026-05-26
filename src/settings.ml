@@ -94,7 +94,7 @@ let seed = add_argument
 
 let plugin_folder = add_argument
   ~lbl:"--plugin-folder"
-  ~ini:"resources/Plugins"
+  ~ini:"resources/plugins"
   ~arg:(fun r -> Set_string r)
   ~str
   ~def:"Path to plugin folder"
