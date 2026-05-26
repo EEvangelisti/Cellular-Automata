@@ -24,6 +24,7 @@ val t001 : cell
 
 val create_matrix : 
   ?init:int -> 
+  ?zone:bool matrix ->
   rows:int -> 
   columns:int -> 
   seed:int -> unit -> cell matrix
@@ -61,7 +62,7 @@ module type AUTOMATON =
     val export : string -> cell matrix -> unit
     val check_row : int -> int
     val check_col : int -> int
-    val create : seed:int -> cell matrix
+    val create : ?zone:bool matrix -> seed:int -> unit -> cell matrix
     val evolve : cell matrix -> cell matrix
   end
 

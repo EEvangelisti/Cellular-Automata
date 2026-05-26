@@ -12,7 +12,7 @@ module type AUTOMATON =
   val export : string -> cell matrix -> unit
   val check_row : int -> int
   val check_col : int -> int
-  val create : seed:int -> cell matrix
+  val create : ?zone:bool matrix -> seed:int -> unit -> cell matrix
   val evolve : cell matrix -> cell matrix
  end
 
@@ -21,15 +21,53 @@ let t000 = (true , '\000')
 let f001 = (false, '\001')
 let t001 = (true , '\001')
 
-let create_matrix ?(init = 1) ~rows ~columns ~seed () =
+let create_matrix ?(init = 1) ?zone ~rows ~columns ~seed () =
   let mat = Array.make_matrix rows columns f000 in
-  let f = match init with
-    | 1 -> (fun () -> '\001')
-    | n -> (fun () -> Char.chr (Random.int n)) in
-  Random.self_init ();
-  for i = 1 to seed do
-    Random.(mat.(int rows).(int columns) <- (true, f ()))
+
+  let f =
+    match init with
+    | 1 -> fun () -> '\001'
+    | n -> fun () -> Char.chr (1 + Random.int (max 1 (n - 1)))
+  in
+
+  let allowed r c =
+    match zone with
+    | None -> true
+    | Some t ->
+        r < Array.length t
+        && c < Array.length t.(r)
+        && t.(r).(c)
+  in
+
+  let coords = ref [] in
+
+  for r = 0 to rows - 1 do
+    for c = 0 to columns - 1 do
+      if allowed r c then
+        coords := (r, c) :: !coords
+    done
   done;
+
+  let coords = Array.of_list !coords in
+  let n = Array.length coords in
+
+  Random.self_init ();
+
+  (* Fisher-Yates shuffle. *)
+  for i = n - 1 downto 1 do
+    let j = Random.int (i + 1) in
+    let tmp = coords.(i) in
+    coords.(i) <- coords.(j);
+    coords.(j) <- tmp
+  done;
+
+  let n_seed = min seed n in
+
+  for i = 0 to n_seed - 1 do
+    let r, c = coords.(i) in
+    mat.(r).(c) <- (true, f ())
+  done;
+
   mat
 
 let import filename =
