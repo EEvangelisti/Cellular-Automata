@@ -1,0 +1,13 @@
+# ca_zoospore_rules.db
+#
+# D = number of internal angular states
+# F = probability of moving two cells instead of one
+# W = angular wiggle at each cycle, in internal angular units
+# P = average persistence of swimming direction, in cycles
+# A = minimal collision-induced turn angle, in degrees
+# M = maximum displayed age
+#
+# With D360, W5 means +/- 5 degrees of free-swimming angular noise.
+# With F0.10, mean speed is 1.10 cells per cycle.
+
+AUTOMATON "DEFAULT": D360/F0.10/W5/P12/A30/M1
