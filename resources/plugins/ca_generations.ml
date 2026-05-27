@@ -1,21 +1,89 @@
-(*  ca_generations.ml - Plugin file
- *  Copyright (C) 2014, 2015, 2016, 2017 Edouard Evangelisti
- * 
- *  This file is part of Ocelot (OCaml Cellular Automata).
- *    
- *  OCelot is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- * 
- *  Ocelot is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Ocelot.  If not, see <http://www.gnu.org/licenses/>
- *)
+(*
+  ca_generations.ml — Generations cellular automaton plugin for Automates
+
+  This plugin implements a family of Generations cellular automata.
+
+  General principle
+  -----------------
+  Generations automata extend Life-like cellular automata by adding
+  transient intermediate states.
+
+  A cell can be:
+
+      0       inactive / dead
+      1       active / alive
+      2..n    fading, refractory, or ageing states
+
+  Dead cells may become active according to a birth rule. Active cells may
+  either remain active or enter the fading sequence. Once a cell has entered
+  the fading sequence, it progresses through successive states until it
+  eventually returns to the inactive state.
+
+  This produces automata with memory-like effects, trails, waves, refractory
+  zones, and excitable-medium-like dynamics.
+
+  Rule format
+  -----------
+  Rules are read from the file:
+
+      ca_generations_rules.db
+
+  Each rule must follow the format:
+
+      AUTOMATON "name": <D>/<B>/<C>
+
+  where:
+
+      D  death / decay rule
+         List of Moore-neighborhood counts for which an active cell leaves
+         the active state and enters the ageing sequence.
+
+      B  birth rule
+         List of Moore-neighborhood counts for which an inactive cell becomes
+         active.
+
+      C  number of states
+         Total number of states, including the inactive state.
+
+  Example
+  -------
+      AUTOMATON "example": 23/3/8
+
+  Interpretation
+  --------------
+  For each cell:
+
+      state 0:
+        becomes state 1 if the number of active neighbors matches B
+
+      state 1:
+        becomes state 2 if the number of active neighbors matches D
+        otherwise remains state 1
+
+      state >= 2:
+        advances to the next ageing state until the last state is reached,
+        then returns to state 0
+
+  Neighborhood
+  ------------
+  The plugin uses the Moore neighborhood, composed of the eight adjacent
+  cells surrounding the current cell.
+
+  Only cells in state 1 are counted as active neighbors. Fading or ageing
+  states are displayed but do not contribute to the neighborhood count.
+
+  Boundary conditions
+  -------------------
+  The plugin uses the standard Automates wrapping functions. The universe
+  is therefore treated as periodic: cells leaving one side of the grid
+  re-enter from the opposite side.
+
+  Notes
+  -----
+  This is a generic cellular automaton plugin. It is intended for exploring
+  waves, trails, refractory dynamics, and generational extensions of
+  Life-like automata, not as a calibrated physical or biological simulator.
+*)
 
 open Scanf
 open Printf

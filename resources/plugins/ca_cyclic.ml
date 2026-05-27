@@ -1,21 +1,70 @@
-(*  ca_cyclic.ml - Plugin file
- *  Copyright (C) 2014, 2015, 2016, 2017 Edouard Evangelisti
- * 
- *  This file is part of Ocelot (OCaml Cellular Automata).
- *    
- *  OCelot is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- * 
- *  Ocelot is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Ocelot.  If not, see <http://www.gnu.org/licenses/>
- *)
+(*
+  ca_cyclic.ml — Cyclic cellular automaton plugin for Automates
+
+  This plugin implements a family of cyclic cellular automata.
+
+  General principle
+  -----------------
+  Each cell belongs to one state in a cyclic sequence:
+
+      0 -> 1 -> 2 -> ... -> n -> 0
+
+  At each generation, a cell checks whether enough neighboring cells are
+  already in its next cyclic state. If this number reaches the threshold,
+  the cell advances to that next state. Otherwise, it remains unchanged.
+
+  This simple rule can generate rich spatial dynamics, including waves,
+  rotating fronts, spirals, and cyclic domains.
+
+  Rule format
+  -----------
+  Rules are read from the file:
+
+      ca_cyclic_rules.db
+
+  Each rule must follow the format:
+
+      AUTOMATON "name": R<range>/T<threshold>/C<states>
+
+  where:
+
+      R  neighborhood range
+         R1 corresponds to the usual Moore neighborhood.
+         Higher values extend the neighborhood over a larger square region.
+
+      T  threshold
+         Minimum number of neighboring cells in the next cyclic state
+         required for a cell to advance.
+
+      C  number of cyclic states
+         Number of states used by the automaton.
+
+  Example
+  -------
+      AUTOMATON "spirals": R1/T3/C14
+
+  Interpretation
+  --------------
+  For each cell:
+
+      current_state = s
+      next_state    = s + 1 modulo C
+
+  If at least T cells within range R are already in next_state, then the
+  cell becomes next_state. Otherwise, it remains in current_state.
+
+  Boundary conditions
+  -------------------
+  The plugin uses the standard Automates wrapping functions. The universe
+  is therefore treated as periodic: cells leaving one side of the grid
+  re-enter from the opposite side.
+
+  Notes
+  -----
+  This is a generic cellular automaton plugin. It is intended for exploring
+  cyclic spatial dynamics and visual pattern formation, not as a calibrated
+  physical or biological simulator.
+*)
 
 open Scanf
 open Printf
