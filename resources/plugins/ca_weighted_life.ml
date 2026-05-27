@@ -152,6 +152,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let n_rows = P.n_rows
   let n_cols = P.n_cols
   let states = max 2 (min P.states 255)
+  let prototyping = false
 
   let import = Plugin.import
   let export = Plugin.export

@@ -67,6 +67,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
 
   let n_rows = P.n_rows
   let n_cols = P.n_cols
+  let prototyping = true
 
   let max_age = max 1 (min 255 P.max_age)
   let states = max_age + 1

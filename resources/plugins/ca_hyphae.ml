@@ -30,6 +30,7 @@ struct
 
   let n_rows = P.n_rows
   let n_cols = P.n_cols
+  let prototyping = true
 
   let max_age = max 1 (min 254 P.max_age)
   let states = max 2 (min 255 (max_age + 1))
