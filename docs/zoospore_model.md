@@ -1,10 +1,3 @@
----
-title: Zoospore motility prototype
-status: not validated by biological data
-model_type: agent-based cellular automaton
-implementation: ca_zoospore.ml
----
-
 # Zoospore motility prototype
 
 This document describes the zoospore motility prototype implemented in `ca_zoospore.ml`.
