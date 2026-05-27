@@ -47,7 +47,7 @@ At each **model cycle**, a zoospore:
 
 The important distinction is that a **model cycle** is an elementary 
 computational update, not necessarily a biological video frame or a fixed unit 
-of real time. A **real-time observation step** can be represented by grouping 
+of real time. A **real-time trajectory  step** can be represented by grouping 
 several model cycles together.
 
 This distinction is essential because a single model cycle is constrained by 
@@ -218,7 +218,7 @@ The plugin distinguishes between:
 | Concept | Meaning |
 |---|---|
 | **model cycle** | one elementary update of the cellular automaton |
-| **real-time step** | one exported trajectory interval, corresponding to several model cycles |
+| **real-time trajectory step** | one exported trajectory interval, corresponding to several model cycles |
 | `track_stride` | number of model cycles grouped into one exported trajectory step |
 
 The current trajectory export parameters are:
@@ -280,14 +280,14 @@ resultant directions increases strongly with `k`.
 
 ![Resultant directions after grouping multiple model cycles](automaton_resultant_directions_norm.png)
 
-*Figure 1. Resultant directions obtained by grouping several model cycles. With one model cycle, the movement is restricted to eight directions. With six model cycles per real-time step, the effective direction space becomes dense enough to approximate a quasi-isotropic movement.*
+*Figure 1. Resultant directions obtained by grouping several model cycles. With one model cycle, the movement is restricted to eight directions. With six model cycles per real-time trajectory step, the effective direction space becomes dense enough to approximate a quasi-isotropic effective movement.*
 
 For even values of `k`, some sequences can return exactly to the starting point. 
 These are zero-net-displacement sequences. They should not necessarily be 
 interpreted as immobility: they can also represent local swimming activity, 
 hesitation, or reorientation without net displacement over the observation interval.
 
-With this method, he direction space is not mathematically perfectly isotropic, 
+With this method, the direction space is not mathematically perfectly isotropic, 
 but the visible lattice artefact is strongly reduced.
 
 ---
@@ -300,7 +300,7 @@ trajectories using different `track_stride` values.
 With a small stride, the grid constraint remains apparent. The trajectories 
 still reveal the limited angular alphabet available to the automaton.
 
-![Zoospore trajectories with two model cycles per real-time step](zoospore_trajectories_track_stride_2.png)
+![Zoospore trajectories with two model cycles per real-time trajectory step](zoospore_trajectories_track_stride_2.png)
 
 *Figure 2. Centred simulated zoospore trajectories when one real-time trajectory step corresponds to two model cycles. The movement is already aggregated, but lattice effects remain visible.*
 
@@ -308,7 +308,7 @@ With a larger stride, each recorded displacement integrates more elementary
 model cycles. The resulting tracks become smoother and more similar to 
 experimentally observed swimming trajectories.
 
-![Zoospore trajectories with six model cycles per real-time step](zoospore_trajectories_track_stride_6.png)
+![Zoospore trajectories with six model cycles per real-time trajectory step](zoospore_trajectories_track_stride_6.png)
 
 *Figure 3. Centred simulated zoospore trajectories when one real-time trajectory step corresponds to six model cycles. The effective trajectories are smoother and the directional discretisation is much less apparent.*
 
@@ -524,4 +524,6 @@ The key modelling idea is that realistic trajectories do not need to emerge
 from a single elementary grid update. Instead, each observed real-time 
 displacement can be interpreted as the result of several internal model cycles. 
 This aggregation transforms the eight-direction movement constraint into a much 
-denser set of effective directions.
+denser set of effective directions. The model cycle should therefore be 
+interpreted as a computational sub-step, whereas the exported trajectory step 
+corresponds to the time scale at which motility is observed and analysed.
