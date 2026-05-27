@@ -1,21 +1,137 @@
-(*  ca_weighted_life.ml - Plugin file
- *  Copyright (C) 2014, 2015, 2016, 2017 Edouard Evangelisti
- * 
- *  This file is part of Ocelot (OCaml Cellular Automata).
- *    
- *  OCelot is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- * 
- *  Ocelot is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Ocelot.  If not, see <http://www.gnu.org/licenses/>
- *)
+(*
+  ca_weighted_life.ml — Weighted Life-like cellular automaton plugin for Automates
+
+  This plugin implements a family of weighted Life-like cellular automata.
+
+  General principle
+  -----------------
+  Weighted Life automata extend classical Life-like automata by assigning
+  different weights to the positions of the local neighborhood.
+
+  Instead of simply counting how many neighboring cells are active, the
+  plugin computes a weighted local score. Birth and survival are then
+  determined by checking whether this score matches the corresponding
+  rule lists.
+
+  This makes it possible to explore how local geometry, directional bias,
+  and asymmetric neighborhoods affect global pattern formation.
+
+  Rule format
+  -----------
+  Rules are read from the file:
+
+      ca_weighted_life_rules.db
+
+  Each rule must follow the format:
+
+      AUTOMATON "name":
+        NW<nw> NN<nn> NE<ne> WW<ww> ME<me> EE<ee> SW<sw> SS<ss> SE<se> HI<states>
+        R<rule> R<rule> ...
+
+  where the nine weights correspond to the 3 × 3 neighborhood:
+
+      NW  NN  NE
+      WW  ME  EE
+      SW  SS  SE
+
+  and:
+
+      NW, NN, NE, WW, ME, EE, SW, SS, SE
+         Integer weights assigned to each neighborhood position.
+
+      ME
+         Weight of the central cell itself.
+
+      HI
+         Number of display/history states.
+         If HI is 0, the default number of cell states is used and history
+         mode is disabled. If HI is greater than 0, history mode is enabled.
+
+      RS<n>
+         Survival rule.
+         An active cell survives if the weighted neighborhood score is n.
+
+      RB<n>
+         Birth rule.
+         An inactive cell becomes active if the weighted neighborhood score
+         is n.
+
+  Example
+  -------
+      AUTOMATON "example": NW1 NN1 NE1 WW1 ME0 EE1 SW1 SS1 SE1 HI0 RS2 RS3 RB3
+
+  Interpretation
+  --------------
+  For each cell, the plugin computes a weighted neighborhood score:
+
+      score =
+        NW × state(NW) + NN × state(NN) + NE × state(NE) +
+        WW × state(WW) + ME × state(ME) + EE × state(EE) +
+        SW × state(SW) + SS × state(SS) + SE × state(SE)
+
+  The interpretation of state values depends on whether history mode is
+  enabled.
+
+  Without history mode:
+
+      any non-zero state is considered active.
+
+  With history mode:
+
+      only state 1 is considered active for neighborhood scoring;
+      higher states are fading or ageing states.
+
+  Birth and survival
+  ------------------
+  If the current cell is inactive:
+
+      it becomes active if the score matches one of the birth rules.
+
+  If the current cell is active:
+
+      it survives if the score matches one of the survival rules.
+
+  Otherwise, the cell becomes inactive or enters the ageing sequence,
+  depending on whether history mode is enabled.
+
+  History mode
+  ------------
+  When HI is greater than 0, the automaton keeps transient display states.
+
+  In this mode:
+
+      state 0    inactive
+      state 1    active
+      state > 1  ageing / fading states
+
+  Ageing states are displayed but are not counted as active neighbors.
+
+  This makes it possible to combine weighted Life-like rules with trails,
+  fading structures, or refractory-like visual dynamics.
+
+  Neighborhood
+  ------------
+  The plugin uses a weighted 3 × 3 neighborhood including the central cell.
+
+  By setting the central weight ME to 0, the automaton behaves like a
+  classical neighborhood count that excludes the current cell.
+
+  By assigning unequal weights to different positions, one can create
+  directional or anisotropic variants of Life-like rules.
+
+  Boundary conditions
+  -------------------
+  The plugin uses the standard Automates wrapping functions. The universe
+  is therefore treated as periodic: cells leaving one side of the grid
+  re-enter from the opposite side.
+
+  Notes
+  -----
+  This is a generic cellular automaton plugin. It is intended for exploring
+  weighted neighborhoods, anisotropic local rules, directional effects, and
+  Life-like spatial dynamics, not as a calibrated physical or biological
+  simulator.
+*)
 
 open Scanf
 open Printf
