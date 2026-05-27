@@ -30,6 +30,13 @@ In **Automates**, the universe is represented as a two-dimensional matrix. At ea
 
 ---
 
+## Model prototyping
+
+See documentation in [this section](docs/model_prototyping.md)
+
+
+---
+
 ## Features
 
 - Two-dimensional cellular automata on a configurable grid
