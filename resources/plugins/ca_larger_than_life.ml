@@ -1,22 +1,106 @@
-(*  ca_larger_than_life.ml - Plugin file
- *  Copyright (C) 2014, 2015, 2016, 2017 Edouard Evangelisti
- * 
- *  This file is part of Ocelot (OCaml Cellular Automata).
- *    
- *  OCelot is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- * 
- *  Ocelot is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Ocelot.  If not, see <http://www.gnu.org/licenses/>
- *)
+(*
+  ca_larger_than_life.ml — Larger-than-Life cellular automaton plugin for Automates
 
+  This plugin implements a family of Larger-than-Life cellular automata.
+
+  General principle
+  -----------------
+  Larger-than-Life automata extend Life-like cellular automata by using
+  neighborhoods larger than the immediate Moore neighborhood.
+
+  Instead of considering only the eight adjacent cells, each cell counts
+  active cells within a square neighborhood of configurable range. Birth and
+  survival are then controlled by intervals rather than by exact neighbor
+  counts.
+
+  This can generate smoother and larger-scale patterns than classical
+  Life-like automata, including expanding fronts, rounded colonies,
+  labyrinthine structures, and broad spatial domains.
+
+  Rule format
+  -----------
+  Rules are read from the file:
+
+      ca_larger_than_life_rules.db
+
+  Each rule must follow the format:
+
+      AUTOMATON "name": <range> <include_center> S<min>..<max> B<min>..<max>
+
+  where:
+
+      range
+         Radius of the square neighborhood used for counting active cells.
+         A range of 1 corresponds to the usual 3 × 3 neighborhood.
+
+      include_center
+         Boolean value indicating whether the central cell itself is included
+         in the neighborhood count.
+
+      S<min>..<max>
+         Survival interval.
+         An active cell survives if the number of active cells in its
+         extended neighborhood lies within this interval.
+
+      B<min>..<max>
+         Birth interval.
+         An inactive cell becomes active if the number of active cells in its
+         extended neighborhood lies within this interval.
+
+  Example
+  -------
+      AUTOMATON "smooth_growth": 5 true S34..58 B34..45
+
+  Interpretation
+  --------------
+  For each cell, the plugin counts active cells in the extended neighborhood.
+
+  If the current cell is inactive:
+
+      it becomes active if the count is within the birth interval B.
+
+  If the current cell is active:
+
+      it survives if the count is within the survival interval S;
+      otherwise, it becomes inactive.
+
+  States and ageing
+  -----------------
+  The automaton uses at least two states.
+
+  State 0 is inactive. Any non-zero state is considered active when counting
+  neighbors.
+
+  Surviving active cells may progress through display states up to the
+  configured maximum number of cell states. These states can be used to
+  visualize persistence or ageing, but they are all treated as active for
+  neighborhood counting.
+
+  Neighborhood
+  ------------
+  The neighborhood is an extended square Moore-like neighborhood.
+
+  For a range R, the counted region has size:
+
+      (2R + 1) × (2R + 1)
+
+  If include_center is false, the central cell is excluded from the count.
+  If include_center is true, the central cell contributes to the count when
+  it is active.
+
+  Boundary conditions
+  -------------------
+  The plugin uses the standard Automates wrapping functions. The universe
+  is therefore treated as periodic: cells leaving one side of the grid
+  re-enter from the opposite side.
+
+  Notes
+  -----
+  This is a generic cellular automaton plugin. It is intended for exploring
+  large-neighborhood birth/survival rules, smooth growth, fronts, domains,
+  and maze-like spatial organization, not as a calibrated physical or
+  biological simulator.
+*)
 open Scanf
 open Printf
 
