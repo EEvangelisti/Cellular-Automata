@@ -6,7 +6,7 @@ Automates was originally designed as a lightweight platform for exploring two-di
 
 The goal is not to provide an exhaustive mathematical reference, but to describe the kinds of spatial dynamics that can be explored with the current plugins.
 
-![Automates overview](images/automates_overview.png)
+![Automates overview](automates_overview.png)
 
 ---
 
