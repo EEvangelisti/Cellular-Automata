@@ -17,18 +17,6 @@
  *  along with Automates.  If not, see <http://www.gnu.org/licenses/>
  *)
 
-  (* Will be used for saving purposes.
-       and find_neighbors_boundaries set =
-        match XYSet.elements set with
-        | [] -> None
-        | (r_ini, c_ini) :: rem -> 
-          let rec loop r_min r_max c_min c_max = function
-            | [] -> Some (r_min, r_max, c_min, c_max)
-            | (r, c) :: rem -> loop (min r r_min) (max r r_max) (min c c_min) 
-              (max c c_max) rem
-          in loop r_ini r_ini c_ini c_ini rem   
-      in find_neighbors_boundaries (loop r c) *)
-
 open Scanf
 open Printf
 
