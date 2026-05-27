@@ -12,7 +12,7 @@ loop, import/export functions, and parameter handling.
 This makes the software useful as a practical sandbox for exploring how simple 
 rules can generate complex spatial dynamics.
 
-![Zoospore trajectories](images/zoospore_trajectories.png)
+![Zoospore trajectories](zoospore_trajectories.png)
 
 
 ---
