@@ -48,8 +48,21 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   module XYMap = Plugin.XYMap
 
   type zoospore = {
+    id : int;
     age : int;
     angle : int;
+
+    (* Tracking metadata.  Each zoospore receives its own acquisition
+       window so that trajectories are sampled over time rather than all
+       starting at t = 0. *)
+    track_start : int;
+    track : (int * float * float) list;
+
+    (* True as soon as one recorded transition has crossed a periodic
+       boundary.  Such trajectories are excluded from tracks.xml because the
+       Python analysis would otherwise interpret the toric jump as a very long,
+       biologically implausible displacement. *)
+    track_wrapped : bool;
   }
 
   let n_rows = P.n_rows
@@ -66,11 +79,128 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
 
   let agents : zoospore XYMap.t ref = ref XYMap.empty
 
+  (* Trajectory export --------------------------------------------------
+
+     The companion Python script expects a file named tracks.xml containing
+     one <particle> element per trajectory and <detection t=... x=... y=.../>
+     children.  Coordinates are exported as cell centres: x = column + 0.5,
+     y = row + 0.5.
+
+     With [track_length = 20], [track_stride = 3] and [track_end_max = 100],
+     every exported trajectory has 20 detections sampled every three internal
+     cycles: start, start + 3, ..., start + 57.  Starts are therefore spread
+     over [0; 43], so the latest exported point is never later than t = 100.
+
+     If you want 20 full exported displacements rather than 20 recorded
+     positions, set [track_length] to 21.
+
+     Trajectories that cross a periodic boundary during their acquisition
+     window, including between two exported frames, are deliberately not
+     exported. *)
+  let tracks_file = "tracks.xml"
+  let track_length = 20
+  let track_stride = 6
+  let track_end_max = 1000
+  let track_span = (track_length - 1) * track_stride
+  let latest_track_start = max 0 (track_end_max - track_span)
+
+  let generation = ref 0
+  let next_agent_id = ref 0
+  let warned_write_failure = ref false
+
+  let track_start_for_index total i =
+    if total <= 1 then 0
+    else (i * latest_track_start) / (total - 1)
+
+  let cell_center (r, c) =
+    (float c +. 0.5, float r +. 0.5)
+
+  let track_is_complete a =
+    List.length a.track >= track_length
+
+  let last_track_cycle a =
+    a.track_start + track_span
+
+  let transition_belongs_to_track cycle a =
+    (* Even when only one frame out of [track_stride] is exported, a toric
+       crossing occurring between two exported frames would produce an
+       artefactual jump in the apparent trajectory.  We therefore invalidate
+       the whole trajectory if any transition crosses a periodic boundary
+       inside the acquisition window. *)
+    cycle > a.track_start
+    && cycle <= last_track_cycle a
+
+  let should_record cycle a =
+    cycle >= a.track_start
+    && cycle <= last_track_cycle a
+    && (cycle - a.track_start) mod track_stride = 0
+    && not (List.exists (fun (t, _, _) -> t = cycle) a.track)
+
+  let record_tracks cycle =
+    agents :=
+      XYMap.fold
+        (fun coord a acc ->
+           let a =
+             if should_record cycle a then
+               let x, y = cell_center coord in
+               { a with track = (cycle, x, y) :: a.track }
+             else
+               a
+           in
+           XYMap.add coord a acc)
+        !agents
+        XYMap.empty
+
+  let write_tracks_xml () =
+    try
+      let oc = open_out tracks_file in
+      begin
+        try
+          output_string oc "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+          output_string oc "<Tracks>\n";
+
+          XYMap.iter
+            (fun _ a ->
+               if track_is_complete a && not a.track_wrapped then begin
+                 Printf.fprintf oc
+                   "  <particle id=\"%d\" start=\"%d\" wrapped=\"false\">\n"
+                   a.id
+                   a.track_start;
+
+                 List.iter
+                   (fun (t, x, y) ->
+                      Printf.fprintf oc
+                        "    <detection t=\"%d\" x=\"%.6f\" y=\"%.6f\"/>\n"
+                        t
+                        x
+                        y)
+                   (List.rev a.track);
+
+                 output_string oc "  </particle>\n"
+               end)
+            !agents;
+
+          output_string oc "</Tracks>\n";
+          close_out oc
+        with e ->
+          close_out_noerr oc;
+          raise e
+      end
+    with e ->
+      if not !warned_write_failure then begin
+        warned_write_failure := true;
+        prerr_endline
+          ("Could not write " ^ tracks_file ^ ": " ^ Printexc.to_string e)
+      end
+
   let wrap x n =
     ((x mod n) + n) mod n
 
   let wrap_coord (r, c) =
     (wrap r P.n_rows, wrap c P.n_cols)
+
+  let raw_coord_uses_torus (r, c) =
+    r < 0 || r >= P.n_rows || c < 0 || c >= P.n_cols
 
   let normalize_angle a =
     let n = max 8 P.n_dirs in
@@ -210,6 +340,9 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let create ?zone ~seed () =
     Random.self_init ();
     agents := XYMap.empty;
+    generation := 0;
+    next_agent_id := 0;
+    warned_write_failure := false;
 
     let coords = ref [] in
     for r = 0 to P.n_rows - 1 do
@@ -224,33 +357,55 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
 
     let n = min seed (Array.length coords) in
     for i = 0 to n - 1 do
+      let id = !next_agent_id in
+      incr next_agent_id;
       agents :=
         XYMap.add coords.(i)
           {
+            id = id;
             age = 0;
             angle = Random.int (max 8 P.n_dirs);
+            track_start = track_start_for_index n i;
+            track = [];
+            track_wrapped = false;
           }
           !agents
     done;
 
+    record_tracks !generation;
+    write_tracks_xml ();
     matrix_of_agents ()
 
   let reconstruct_if_needed mat =
     if XYMap.is_empty !agents then begin
+      let cells = ref [] in
       Array.iteri
         (fun r row ->
            Array.iteri
              (fun c (_, chr) ->
                 if chr <> '\000' then
-                  agents :=
-                    XYMap.add (r, c)
-                      {
-                        age = max 0 (Char.code chr - 1);
-                        angle = Random.int (max 8 P.n_dirs);
-                      }
-                      !agents)
+                  cells := ((r, c), max 0 (Char.code chr - 1)) :: !cells)
              row)
-        mat
+        mat;
+
+      let cells = Array.of_list !cells in
+      let total = Array.length cells in
+      Array.iteri
+        (fun i (coord, age) ->
+           let id = !next_agent_id in
+           incr next_agent_id;
+           agents :=
+             XYMap.add coord
+               {
+                 id = id;
+                 age = age;
+                 angle = Random.int (max 8 P.n_dirs);
+                 track_start = track_start_for_index total i;
+                 track = [];
+                 track_wrapped = false;
+               }
+               !agents)
+        cells
     end
 
   let age_agent a =
@@ -260,10 +415,12 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
     let dr, dc = offset_of_angle angle in
 
     let rec loop coord k =
-      if k = 0 then Some coord
+      if k = 0 then Some (coord, false)
       else
         let r, c = coord in
-        let next = wrap_coord (r + dr, c + dc) in
+        let raw_next = (r + dr, c + dc) in
+        let used_torus = raw_coord_uses_torus raw_next in
+        let next = wrap_coord raw_next in
 
         (* A zoospore collides if the next position is occupied in the
            previous configuration, or if another zoospore has already claimed
@@ -274,7 +431,11 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
         in
 
         if occupied then None
-        else loop next (k - 1)
+        else
+          match loop next (k - 1) with
+          | None -> None
+          | Some (target, wrapped_later) ->
+              Some (target, used_torus || wrapped_later)
     in
 
     loop origin steps
@@ -295,6 +456,8 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
 
     shuffle items;
 
+    let next_generation = !generation + 1 in
+
     Array.iter
       (fun (coord, a0) ->
          let a = age_agent a0 in
@@ -302,9 +465,15 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
          let steps = speed () in
 
          match target_after_steps old_agents new_agents coord angle steps with
-         | Some target ->
+         | Some (target, used_torus) ->
+             let track_wrapped =
+               a.track_wrapped
+               || (used_torus && transition_belongs_to_track next_generation a)
+             in
              new_agents :=
-               XYMap.add target { a with angle } !new_agents
+               XYMap.add target
+                 { a with angle = angle; track_wrapped = track_wrapped }
+                 !new_agents
 
          | None ->
              (* Collision: no displacement, previous position stays occupied,
@@ -317,6 +486,10 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
       items;
 
     agents := !new_agents;
+    incr generation;
+    record_tracks !generation;
+    if !generation <= track_end_max then
+      write_tracks_xml ();
     matrix_of_agents ~old_agents ()
  end
 
