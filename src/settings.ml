@@ -100,6 +100,13 @@ let plugin_folder = add_argument
   ~str
   ~def:"Path to plugin folder"
 
+let prototyping = add_argument
+  ~lbl:"--prototyping"
+  ~ini:false
+  ~arg:(fun r -> Set r)
+  ~str:string_of_bool
+  ~def:"Load prototyping models instead of ordinary cellular automata"
+
 let save_as_png = add_argument
   ~lbl:"--save-as-png"
   ~ini:false
@@ -125,6 +132,7 @@ let args = Arg.align [
   snd speed;
   snd seed;
   snd plugin_folder;
+  snd prototyping;
   snd save_as_png;
   snd print_stats;
 ]
@@ -139,5 +147,6 @@ let ncols = fst ncols
 let speed = fst speed
 let seed = fst seed
 let plugin_folder = fst plugin_folder
+let prototyping = fst prototyping
 let save_as_png = fst save_as_png
 let print_stats = fst print_stats

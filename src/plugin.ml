@@ -26,6 +26,7 @@ module type AUTOMATON =
   val n_rows : int
   val n_cols : int
   val states : int
+  val prototyping : bool
   val import : string -> cell matrix
   val export : string -> cell matrix -> unit
   val check_row : int -> int
@@ -127,8 +128,13 @@ let get_death_rule s =
 
 let ca_database = Hashtbl.create 10
 
-let get_names () = 
-  Hashtbl.fold (fun key _ res -> key :: res) ca_database []
+let get_names ?(prototyping = false) () = 
+  Hashtbl.fold
+    (fun key mdl res ->
+       let module CA = (val mdl : AUTOMATON) in
+       if CA.prototyping = prototyping then key :: res else res)
+    ca_database
+    []
   |> List.sort String.compare
 
 module XY = struct

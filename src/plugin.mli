@@ -1,4 +1,22 @@
-(* plugin.mli *)
+(*  plugin.mli
+ *  Copyright (C) 2014-2027 Edouard Evangelisti
+ * 
+ *  This file is part of Automates.
+ *    
+ *  Automates is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ * 
+ *  Automates is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Automates.  If not, see <http://www.gnu.org/licenses/>
+ *)
+
 
 (** Auxiliary functions for plugins. This module implements a set of convenient
   * functions to assist the development of new plugins for cellular automata. *)
@@ -58,6 +76,7 @@ module type AUTOMATON =
     val n_rows : int
     val n_cols : int
     val states : int
+    val prototyping : bool
     val import : string -> cell matrix
     val export : string -> cell matrix -> unit
     val check_row : int -> int
@@ -69,7 +88,7 @@ module type AUTOMATON =
 val ca_database : (string, (module AUTOMATON)) Hashtbl.t
   (** Cellular automata database, to be populated by plugins. *)
   
-val get_names : unit -> string list
+val get_names : ?prototyping:bool -> unit -> string list
   (** Returns the list of all available cellular automata. *)
   
 module XYSet : Set.S with type elt = int * int

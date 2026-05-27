@@ -206,10 +206,13 @@ let scan_automaton s = sscanf s "%[^/]/%[^\n]" (fun x y -> x, y)
 
 (* Remplit la liste déroulante avec le nom des automates cellulaires. *)
 let populate_ca_combo_box () =
-  List.iter (fun ca ->
-    let family, name = scan_automaton ca in
-    GUI.Automaton.add ~family ~name
-  ) (Plugin.get_names ())
+  let names = Plugin.get_names ~prototyping:!Settings.prototyping () in
+  List.iter
+    (fun ca ->
+       let family, name = scan_automaton ca in
+       GUI.Automaton.add ~family ~name)
+    names;
+  names
 
 (* Remplit la liste déroulante avec les palettes de couleurs disponibles. *)
 let populate_color_scheme_combo_box () =
@@ -243,9 +246,24 @@ let run_automaton () =
  * associe des fonctions aux boutons de l'interface graphique. *)
 let initialize_interface () =
   load_plugins ();
-  populate_ca_combo_box ();
+  let automata = populate_ca_combo_box () in
   populate_color_scheme_combo_box ();
-  let family, name = scan_automaton !Settings.automaton in
+
+  let initial_automaton =
+    if List.mem !Settings.automaton automata then
+      !Settings.automaton
+    else
+      match automata with
+      | ca :: _ -> ca
+      | [] ->
+          failwith
+            (if !Settings.prototyping then
+               "No prototyping model available."
+             else
+               "No ordinary cellular automaton available.")
+  in
+
+  let family, name = scan_automaton initial_automaton in
   GUI.Automaton.set_active ~family ~name;
   GUI.ColorScheme.set_active !Settings.color_scheme;
   GUI.run#connect#clicked
