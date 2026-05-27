@@ -99,11 +99,27 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
      window, including between two exported frames, are deliberately not
      exported. *)
   let tracks_file = "tracks.xml"
-  let track_length = 20
-  let track_stride = 6
-  let track_end_max = 1000
-  let track_span = (track_length - 1) * track_stride
-  let latest_track_start = max 0 (track_end_max - track_span)
+
+  let track_length = ref 20
+  let track_stride = ref 6
+  let track_end_max = ref 1000
+
+  let get_int_arg opts key default =
+    match List.assoc_opt key opts with
+    | None -> default
+    | Some s ->
+        try int_of_string s with
+        | Failure _ ->
+            invalid_arg
+              (Printf.sprintf "Invalid integer for plugin argument %s: %s" key s)
+
+  let configure opts =
+    track_length := get_int_arg opts "track-length" !track_length;
+    track_stride := get_int_arg opts "track-stride" !track_stride;
+    track_end_max := get_int_arg opts "track-end-max" !track_end_max
+
+  let track_span = (!track_length - 1) * !track_stride
+  let latest_track_start = max 0 (!track_end_max - track_span)
 
   let generation = ref 0
   let next_agent_id = ref 0
@@ -117,7 +133,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
     (float c +. 0.5, float r +. 0.5)
 
   let track_is_complete a =
-    List.length a.track >= track_length
+    List.length a.track >= !track_length
 
   let last_track_cycle a =
     a.track_start + track_span
@@ -134,7 +150,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let should_record cycle a =
     cycle >= a.track_start
     && cycle <= last_track_cycle a
-    && (cycle - a.track_start) mod track_stride = 0
+    && (cycle - a.track_start) mod !track_stride = 0
     && not (List.exists (fun (t, _, _) -> t = cycle) a.track)
 
   let record_tracks cycle =
@@ -489,7 +505,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
     agents := !new_agents;
     incr generation;
     record_tracks !generation;
-    if !generation <= track_end_max then
+    if !generation <= !track_end_max then
       write_tracks_xml ();
     matrix_of_agents ~old_agents ()
  end
