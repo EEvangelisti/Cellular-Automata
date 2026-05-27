@@ -68,3 +68,6 @@ val save_as_png : bool ref
   
 val print_stats : bool ref
   (** Prints statistics on elapsed time. *)
+
+val plugin_args : (string * string) list ref
+  (** Plugin arguments. *)

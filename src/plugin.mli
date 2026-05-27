@@ -83,6 +83,7 @@ module type AUTOMATON =
     val check_col : int -> int
     val create : ?zone:bool matrix -> seed:int -> unit -> cell matrix
     val evolve : cell matrix -> cell matrix
+    val configure : (string * string) list -> unit
   end
 
 val ca_database : (string, (module AUTOMATON)) Hashtbl.t

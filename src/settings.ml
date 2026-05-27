@@ -121,6 +121,28 @@ let print_stats = add_argument
   ~str:string_of_bool
   ~def:"Print statistics on elapsed time"
 
+let plugin_args = ref []
+
+let add_plugin_arg s =
+  match String.index_opt s '=' with
+  | None ->
+      invalid_arg
+        (sprintf "Invalid plugin argument %S. Expected KEY=VALUE." s)
+  | Some i ->
+      let key = String.sub s 0 i |> String.trim in
+      let value =
+        String.sub s (i + 1) (String.length s - i - 1)
+        |> String.trim
+      in
+      plugin_args := (key, value) :: !plugin_args
+
+let plugin_args = add_argument
+  ~lbl:"--plugin-arg"
+  ~ini:[]
+  ~arg:add_plugin_arg
+  ~str
+  ~def:"KEY=VALUE argument passed to the selected plugin."
+
 let args = Arg.align [
   snd color_scheme;
   snd color_scheme_database;
@@ -135,6 +157,7 @@ let args = Arg.align [
   snd prototyping;
   snd save_as_png;
   snd print_stats;
+  snd plugin_args
 ]
 
 let color_scheme = fst color_scheme
@@ -150,3 +173,4 @@ let plugin_folder = fst plugin_folder
 let prototyping = fst prototyping
 let save_as_png = fst save_as_png
 let print_stats = fst print_stats
+let plugin_args = fst plugin_args

@@ -219,6 +219,7 @@ let run_automaton () =
   GUI.exec_with_toolbox (fun box ->
     let mdl = Hashtbl.find Plugin.ca_database (GUI.Automaton.get_active ()) in
     let module M = (val mdl : Plugin.AUTOMATON) in
+    M.configure !Settings.plugin_args;
     let ini = M.create ~seed:(truncate GUI.ca_seed#value) () in
     curr_ca := Some (mdl, ini);
     let backcolor = GUI.get_backcolor () in
