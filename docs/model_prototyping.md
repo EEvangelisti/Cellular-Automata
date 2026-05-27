@@ -17,6 +17,7 @@ rules can generate complex spatial dynamics.
 ## Examples
 
 [Zoospore motility prototype](zoospore_model.md)
+[Hyphal growth prototype](hyphal_growth_model.md)
 
 ---
 
