@@ -15,6 +15,8 @@ The current version should therefore be considered exploratory.
 
 > **Status:** not validated by biological data.
 
+![Zoospore trajectories](zoospore_trajectories.png)
+
 ---
 
 ## General principle
