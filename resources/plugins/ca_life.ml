@@ -1,21 +1,95 @@
-(*  ca_life.ml - Plugin file
- *  Copyright (C) 2014, 2015, 2016, 2017 Edouard Evangelisti
- * 
- *  This file is part of Ocelot (OCaml Cellular Automata).
- *    
- *  OCelot is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- * 
- *  Ocelot is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Ocelot.  If not, see <http://www.gnu.org/licenses/>
- *)
+(*
+  ca_life.ml — Life-like cellular automaton plugin for Automates
+
+  This plugin implements a family of Life-like cellular automata.
+
+  General principle
+  -----------------
+  Life-like automata are inspired by Conway's Game of Life and related
+  birth/survival systems.
+
+  Each cell is either inactive or active. At each generation, the next state
+  of a cell is determined by the number of active cells in its Moore
+  neighborhood, composed of the eight adjacent cells.
+
+  An inactive cell may become active if the number of active neighbors
+  matches the birth rule. An active cell may survive or disappear depending
+  on the survival/death rule.
+
+  This simple framework can generate rich spatial dynamics, including stable
+  structures, oscillators, expanding patterns, chaotic transients, and
+  self-organized motifs.
+
+  Rule format
+  -----------
+  Rules are read from the file:
+
+      ca_life_rules.db
+
+  Each rule must follow the format:
+
+      AUTOMATON "name": <survival>/<birth>
+
+  where:
+
+      survival
+         List of Moore-neighborhood counts for which an active cell does
+         not die.
+
+      birth
+         List of Moore-neighborhood counts for which an inactive cell becomes
+         active.
+
+  Example
+  -------
+      AUTOMATON "conway": 23/3
+
+  Interpretation
+  --------------
+  For each cell, the plugin counts active cells in the Moore neighborhood.
+
+  If the current cell is inactive:
+
+      it becomes active if the count matches the birth rule.
+
+  If the current cell is active:
+
+      it dies if the count does not match the survival rule;
+      otherwise, it remains active.
+
+  States and display
+  ------------------
+  State 0 is inactive.
+
+  Any non-zero state is considered active when counting neighbors. Surviving
+  active cells may progress through display states up to the configured
+  maximum number of cell states. These states can be used to visualize
+  persistence or ageing, but they are all treated as active for neighborhood
+  counting.
+
+  Neighborhood
+  ------------
+  The plugin uses the Moore neighborhood:
+
+      NW  N  NE
+       W  C   E
+      SW  S  SE
+
+  Only the eight adjacent cells are counted. The central cell is not included
+  in the neighborhood count.
+
+  Boundary conditions
+  -------------------
+  The plugin uses the standard Automates wrapping functions. The universe
+  is therefore treated as periodic: cells leaving one side of the grid
+  re-enter from the opposite side.
+
+  Notes
+  -----
+  This is a generic cellular automaton plugin. It is intended for exploring
+  classical birth/survival rules and Life-like spatial dynamics, not as a
+  calibrated physical or biological simulator.
+*)
 
 open Scanf
 open Printf
