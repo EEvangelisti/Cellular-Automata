@@ -121,27 +121,35 @@ let print_stats = add_argument
   ~str:string_of_bool
   ~def:"Print statistics on elapsed time"
 
-let plugin_args = ref []
+let string_of_plugin_args args =
+  match args with
+  | [] -> "none"
+  | xs ->
+      xs
+      |> List.map (fun (k, v) -> sprintf "%s=%s" k v)
+      |> String.concat ","
 
-let add_plugin_arg s =
+let add_plugin_arg plugin_args s =
   match String.index_opt s '=' with
   | None ->
-      invalid_arg
-        (sprintf "Invalid plugin argument %S. Expected KEY=VALUE." s)
+      raise (Bad (sprintf "Invalid plugin argument %S. Expected KEY=VALUE." s))
   | Some i ->
       let key = String.sub s 0 i |> String.trim in
       let value =
         String.sub s (i + 1) (String.length s - i - 1)
         |> String.trim
       in
-      plugin_args := (key, value) :: !plugin_args
+      if key = "" then
+        raise (Bad (sprintf "Invalid plugin argument %S. Empty key." s))
+      else
+        plugin_args := (key, value) :: !plugin_args
 
 let plugin_args = add_argument
   ~lbl:"--plugin-arg"
   ~ini:[]
-  ~arg:add_plugin_arg
-  ~str
-  ~def:"KEY=VALUE argument passed to the selected plugin."
+  ~arg:(fun r -> String (add_plugin_arg r))
+  ~str:string_of_plugin_args
+  ~def:"KEY=VALUE argument passed to the selected plugin"
 
 let args = Arg.align [
   snd color_scheme;
