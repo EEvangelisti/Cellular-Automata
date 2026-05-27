@@ -269,7 +269,7 @@ struct
           carve_right len r0
     done
 
-  let create ~seed =
+  let create ?zone ~seed () =
     Random.self_init ();
     agents := XYMap.empty;
     create_obstacle_rectangle ();

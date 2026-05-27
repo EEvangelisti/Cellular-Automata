@@ -142,7 +142,7 @@ struct
   let inhibit coord map =
     update_agent coord (fun a -> { a with can_branch = false }) map
 
-  let create ~seed =
+  let create ?zone ~seed () =
     Random.self_init ();
     agents := XYMap.empty;
 

@@ -38,7 +38,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let import = Plugin.import
   let export = Plugin.export
 
-  let create ~seed = Plugin.create_matrix 
+  let create ?zone ~seed () = Plugin.create_matrix 
     ~init:(states +  1) 
     ~rows:P.n_rows
     ~columns:P.n_cols
