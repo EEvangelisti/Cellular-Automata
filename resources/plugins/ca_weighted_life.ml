@@ -153,7 +153,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let n_cols = P.n_cols
   let states = max 2 (min P.states 255)
   let prototyping = false
-  let configure _ = ()
+  let configure ~name:_ _ = ()
 
   let import = Plugin.import
   let export = Plugin.export
@@ -243,7 +243,7 @@ let _ =
         let weights = [|nw; nn; ne; ww; me; ee; sw; ss; se|]
         and states = if hi = 0 then !Settings.cell_states else hi in
         let survival, birth = retrieve_rules rem in
-        Hashtbl.add Plugin.ca_database (Filename.concat "WLIF" id) (
+        Hashtbl.add Plugin.ca_database ("WLIF" ^ id) (
          make_module ~states ~weights ~birth ~survival ~history:(hi > 0)
         ))
   ) Tools.(nlines (String.trim (read_file db_file)))

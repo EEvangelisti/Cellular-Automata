@@ -143,7 +143,7 @@ struct
   let inhibit coord map =
     update_agent coord (fun a -> { a with can_branch = false }) map
 
-  let configure _ = ()
+  let configure ~name:_ _ = ()
 
   let create ?zone ~seed () =
     Random.self_init ();
@@ -341,6 +341,6 @@ let _ =
                   ~max_age
               in
               Hashtbl.add Plugin.ca_database
-                (Filename.concat "HYPHA" id)
+                ("HYPHA-" ^ id)
                 mdl))
     Tools.(nlines (String.trim (read_file db_file)))

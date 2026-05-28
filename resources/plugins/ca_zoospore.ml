@@ -14,6 +14,7 @@
  *)
 
 open Scanf
+open Printf
 
 module type PARAMS =
  sig
@@ -98,11 +99,12 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
      Trajectories that cross a periodic boundary during their acquisition
      window, including between two exported frames, are deliberately not
      exported. *)
-  let tracks_file = "tracks.xml"
-
+  
+  let automaton_name = ref ""
   let track_length = ref 20
   let track_stride = ref 6
   let track_end_max = ref 1000
+  let tracks_file = ref "tracks.xml"
 
   let get_int_arg opts key default =
     match List.assoc_opt key opts with
@@ -113,10 +115,20 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
             invalid_arg
               (Printf.sprintf "Invalid integer for plugin argument %s: %s" key s)
 
-  let configure opts =
-    track_length := get_int_arg opts "track-length" !track_length;
-    track_stride := get_int_arg opts "track-stride" !track_stride;
-    track_end_max := get_int_arg opts "track-end-max" !track_end_max
+  let get_arg opts key default =
+    match List.assoc_opt key opts with
+    | None -> default
+    | Some s -> s
+
+  let configure ~name opts =
+    track_length := get_int_arg opts "TRACK_LENGTH" !track_length;
+    track_stride := get_int_arg opts "TRACK_STRIDE" !track_stride;
+    track_end_max := get_int_arg opts "TRACK_END_MAX" !track_end_max;
+    automaton_name := name;
+    tracks_file := match List.assoc_opt "TRACKS_FILE" opts with
+      | Some s -> s
+      | None -> sprintf "Tracks_%s_len%d_stride%d_end%d.xml" !automaton_name 
+        !track_length !track_stride !track_end_max
 
   let track_span = (!track_length - 1) * !track_stride
   let latest_track_start = max 0 (!track_end_max - track_span)
@@ -170,7 +182,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
 
   let write_tracks_xml () =
     try
-      let oc = open_out tracks_file in
+      let oc = open_out !tracks_file in
       begin
         try
           output_string oc "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
@@ -207,7 +219,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
       if not !warned_write_failure then begin
         warned_write_failure := true;
         prerr_endline
-          ("Could not write " ^ tracks_file ^ ": " ^ Printexc.to_string e)
+          ("Could not write " ^ !tracks_file ^ ": " ^ Printexc.to_string e)
       end
 
   let wrap x n =
@@ -544,6 +556,6 @@ let _ =
                   ~max_age
               in
               Hashtbl.add Plugin.ca_database
-                (Filename.concat "ZOOSP" id)
+                ("ZOOSP-" ^ id)
                 mdl))
     Tools.(nlines (String.trim (read_file db_file)))

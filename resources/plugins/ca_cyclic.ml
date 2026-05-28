@@ -84,7 +84,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let n_cols = P.n_cols
   let states = max 2 (min P.states 255)
   let prototyping = false
-  let configure _ = ()
+  let configure ~name:_ _ = ()
 
   let import = Plugin.import
   let export = Plugin.export
@@ -142,5 +142,5 @@ let _ =
     sscanf ca_line " AUTOMATON %S: R%d/T%d/C%d" 
       (fun id range threshold states ->
         let mdl = make_module ~range ~threshold ~states in
-        Hashtbl.add Plugin.ca_database (Filename.concat "CYCL" id) mdl)
+        Hashtbl.add Plugin.ca_database ("CYCL-" ^ id) mdl)
   ) Tools.(nlines (String.trim (read_file db_file)))

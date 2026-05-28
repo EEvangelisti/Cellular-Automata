@@ -109,7 +109,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let n_cols = P.n_cols
   let states = max 2 (min P.states 255)
   let prototyping = false
-  let configure _ = ()
+  let configure ~name:_ _ = ()
 
   let import = Plugin.import
   let export = Plugin.export
@@ -164,7 +164,7 @@ let db_file = Filename.concat !Settings.plugin_folder "ca_life_rules.db"
 let _ =
   List.iter (fun ca_line ->
     sscanf ca_line " AUTOMATON %S: %[0-9]/%[0-9]" (fun id s_rule b_rule ->
-    Hashtbl.add Plugin.ca_database (Filename.concat "LIFE" id) (
+    Hashtbl.add Plugin.ca_database ("LIFE-" ^ id) (
      make_module
       ~birth:(Plugin.get_birth_rule b_rule) 
       ~death:(Plugin.get_death_rule s_rule)
