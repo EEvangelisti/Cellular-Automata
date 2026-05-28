@@ -88,7 +88,7 @@ module Automaton = struct
     match combo_box#active_iter with
     | None -> assert false (* Never happens. *)
     | Some row -> let get = model#get ~row in
-      sprintf "%s/%s" (get ~column:family) (get ~column:name)
+      sprintf "%s-%s" (get ~column:family) (get ~column:name)
 end
 
 

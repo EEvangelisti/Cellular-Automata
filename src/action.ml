@@ -139,7 +139,7 @@ let get_folder_name ca =
     (tm_year mod 100) tm_hour tm_min tm_sec
 
 let print_elapsed_time ca x y =
-  ksprintf GUI.status "%s (Calc %.1f ms, Disp %.1f ms)" ca x y;
+  ksprintf GUI.status "%s (Cycle %06d, Calc %.1f ms, Disp %.1f ms)" ca !counter x y;
   if !Settings.print_stats then printf "%.1f\t%.1f\n%!" x y
 
 let may_save_as dir =
@@ -190,7 +190,7 @@ let load_plugins () =
     end
   ) (Sys.readdir dir) 
 
-let scan_automaton s = sscanf s "%[^/]/%[^\n]" (fun x y -> x, y)
+let scan_automaton s = sscanf s "%[^-]-%[^\n]" (fun x y -> x, y)
 
 (* Remplit la liste déroulante avec le nom des automates cellulaires. *)
 let populate_ca_combo_box () =
@@ -217,9 +217,10 @@ let populate_color_scheme_combo_box () =
 (* Exécute un automate cellulaire à partir d'une distribution aléatoire. *)
 let run_automaton () =
   GUI.exec_with_toolbox (fun box ->
-    let mdl = Hashtbl.find Plugin.ca_database (GUI.Automaton.get_active ()) in
+    let ca = GUI.Automaton.get_active () in
+    let mdl = Hashtbl.find Plugin.ca_database ca in
     let module M = (val mdl : Plugin.AUTOMATON) in
-    M.configure !Settings.plugin_args;
+    M.configure ~name:ca !Settings.plugin_args;
     let ini = M.create ~seed:(truncate GUI.ca_seed#value) () in
     curr_ca := Some (mdl, ini);
     let backcolor = GUI.get_backcolor () in

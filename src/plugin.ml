@@ -33,7 +33,7 @@ module type AUTOMATON =
   val check_col : int -> int
   val create : ?zone:bool matrix -> seed:int -> unit -> cell matrix
   val evolve : cell matrix -> cell matrix
-  val configure : (string * string) list -> unit
+  val configure : name:string -> (string * string) list -> unit
  end
 
 let f000 = (false, '\000')
