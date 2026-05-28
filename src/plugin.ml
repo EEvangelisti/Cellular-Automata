@@ -147,3 +147,84 @@ end
 
 module XYSet = Set.Make(XY)
 module XYMap = Map.Make(XY)
+
+module Args = struct
+  type t = (string * string) list
+
+  let any f t s ~default =
+    match List.assoc_opt (String.uppercase_ascii s) t with
+    | None -> default
+    | Some s -> f s
+
+  let get t = any (fun x -> x) t
+  let get_int = any int_of_string
+  let get_float = any float_of_string
+  let get_bool = any (fun s ->
+    match String.lowercase_ascii s with
+    | "false" | "no" | "0"| "" -> false
+    | _ -> true)
+end
+
+module Coord = struct
+  type t = int * int
+  (** Grid coordinate: row, column. *)
+
+  let check_bounds ~rows ~columns =
+    if rows <= 0 || columns <= 0 then
+      invalid_arg
+        (Printf.sprintf
+           "Invalid grid bounds: rows=%d columns=%d"
+           rows columns)
+
+  let positive_mod x n =
+    let r = x mod n in
+    if r < 0 then r + n else r
+
+  let wrap_index ~size x =
+    if size <= 0 then
+      invalid_arg
+        (Printf.sprintf "Invalid wrapping size: %d" size);
+    positive_mod x size
+
+  let wrap ~rows ~columns (r, c) =
+    check_bounds ~rows ~columns;
+    (wrap_index ~size:rows r, wrap_index ~size:columns c)
+
+  let in_bounds ~rows ~columns (r, c) =
+    check_bounds ~rows ~columns;
+    r >= 0 && r < rows && c >= 0 && c < columns
+
+  let uses_torus ~rows ~columns coord =
+    not (in_bounds ~rows ~columns coord)
+
+  let add (r, c) (dr, dc) =
+    (r + dr, c + dc)
+
+  let sub (r1, c1) (r2, c2) =
+    (r1 - r2, c1 - c2)
+
+  let scale k (r, c) =
+    (k * r, k * c)
+
+  let move ~rows ~columns coord offset =
+    coord
+    |> add offset
+    |> wrap ~rows ~columns
+
+  let raw_move coord offset =
+    add coord offset
+
+  let move_with_torus_flag ~rows ~columns coord offset =
+    let raw = raw_move coord offset in
+    let wrapped = wrap ~rows ~columns raw in
+    (wrapped, uses_torus ~rows ~columns raw)
+
+  let cell_center (r, c) =
+    (float_of_int c +. 0.5, float_of_int r +. 0.5)
+
+  let row (r, _) = r
+  let column (_, c) = c
+
+  let to_string (r, c) =
+    Printf.sprintf "(%d,%d)" r c
+end

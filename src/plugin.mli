@@ -97,3 +97,38 @@ module XYSet : Set.S with type elt = int * int
 
 module XYMap : Map.S with type key = int * int
   (** Maps with coordinate keys. *)
+
+(** {2 Argument parsing } *)
+module Args : sig
+  type t = (string * string) list
+  val get : t -> string -> default:string -> string
+  val get_int : t -> string -> default:int -> int
+  val get_float : t -> string -> default:float -> float
+  val get_bool : t -> string -> default:bool -> bool
+end
+
+(** {2 Coordinates and torus structure } *)
+module Coord : sig
+  type t = int * int
+  (** Grid coordinate: row, column. *)
+
+  val wrap : rows:int -> columns:int -> t -> t
+  val in_bounds : rows:int -> columns:int -> t -> bool
+  val uses_torus : rows:int -> columns:int -> t -> bool
+
+  val add : t -> t -> t
+  val sub : t -> t -> t
+  val scale : int -> t -> t
+
+  val raw_move : t -> t -> t
+  val move : rows:int -> columns:int -> t -> t -> t
+  val move_with_torus_flag :
+    rows:int -> columns:int -> t -> t -> t * bool
+
+  val cell_center : t -> float * float
+  val row : t -> int
+  val column : t -> int
+  val to_string : t -> string
+end
+
+
