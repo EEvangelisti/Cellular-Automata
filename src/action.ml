@@ -143,8 +143,8 @@ let print_elapsed_time ca x y =
   if !Settings.print_stats then printf "%.1f\t%.1f\n%!" x y
 
 let may_save_as dir =
+  incr counter;
   if GUI.ca_save_as_png#active then (
-    incr counter;
     if not Sys.(file_exists dir && is_directory dir) then Unix.mkdir dir 0o755;
     Some (sprintf "%s/IMG_%06d.png" dir !counter)
   ) else None
