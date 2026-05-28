@@ -105,6 +105,7 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let track_stride = ref 6
   let track_end_max = ref 1000
   let tracks_file = ref "tracks.xml"
+  let save_tracks = ref false
 
   let get_int_arg opts key default =
     match List.assoc_opt key opts with
@@ -115,12 +116,15 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
             invalid_arg
               (Printf.sprintf "Invalid integer for plugin argument %s: %s" key s)
 
+let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
+
   let get_arg opts key default =
     match List.assoc_opt key opts with
     | None -> default
     | Some s -> s
 
   let configure ~name opts =
+    save_tracks := get_bool_arg opts "SAVE_TRACKS";
     track_length := get_int_arg opts "TRACK_LENGTH" !track_length;
     track_stride := get_int_arg opts "TRACK_STRIDE" !track_stride;
     track_end_max := get_int_arg opts "TRACK_END_MAX" !track_end_max;
@@ -401,8 +405,10 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
           !agents
     done;
 
-    record_tracks !generation;
-    write_tracks_xml ();
+    if !save_tracks then begin
+      record_tracks !generation;
+      write_tracks_xml ()
+    end;
     matrix_of_agents ()
 
   let reconstruct_if_needed mat =
@@ -516,9 +522,11 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
 
     agents := !new_agents;
     incr generation;
-    record_tracks !generation;
-    if !generation <= !track_end_max then
-      write_tracks_xml ();
+    if !save_tracks then begin
+      record_tracks !generation;
+      if !generation <= !track_end_max then
+        write_tracks_xml ();
+    end;
     matrix_of_agents ~old_agents ()
  end
 
