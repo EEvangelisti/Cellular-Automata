@@ -145,7 +145,7 @@ let add_plugin_arg plugin_args s =
         plugin_args := (key, value) :: !plugin_args
 
 let plugin_args = add_argument
-  ~lbl:"--plugin-arg"
+  ~lbl:"--keyval"
   ~ini:[]
   ~arg:(fun r -> String (add_plugin_arg r))
   ~str:string_of_plugin_args
