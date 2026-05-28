@@ -47,6 +47,9 @@ module type PARAMS =
 module Make (P : PARAMS) : Plugin.AUTOMATON =
  struct
   module XYMap = Plugin.XYMap
+  module Args = Plugin.Args
+  module Coord = Plugin.Coord
+  module Moore = Plugin.Moore
 
   type zoospore = {
     id : int;
@@ -68,6 +71,8 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
 
   let n_rows = P.n_rows
   let n_cols = P.n_cols
+  let n_dirs = max 8 P.n_dirs
+  let check_row, check_col = Plugin.move_functions ~rows:n_rows ~columns:n_cols
   let prototyping = true
 
   let max_age = max 1 (min 255 P.max_age)
@@ -76,22 +81,18 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
   let import = Plugin.import
   let export = Plugin.export
 
-  let check_row, check_col =
-    Plugin.move_functions ~rows:P.n_rows ~columns:P.n_cols
-
   let agents : zoospore XYMap.t ref = ref XYMap.empty
 
   (* Trajectory export --------------------------------------------------
 
-     The companion Python script expects a file named tracks.xml containing
-     one <particle> element per trajectory and <detection t=... x=... y=.../>
-     children.  Coordinates are exported as cell centres: x = column + 0.5,
+     The companion Python script expects an XML file containing one <particle>
+     element per trajectory and <detection t=... x=... y=.../> children.
+     Coordinates are exported as cell centres: x = column + 0.5,
      y = row + 0.5.
 
-     With [track_length = 20], [track_stride = 3] and [track_end_max = 100],
-     every exported trajectory has 20 detections sampled every three internal
-     cycles: start, start + 3, ..., start + 57.  Starts are therefore spread
-     over [0; 43], so the latest exported point is never later than t = 100.
+     With [track_length = 20], [track_stride = 6] and [track_end_max = 1000],
+     every exported trajectory has 20 detections sampled every six internal
+     model cycles.
 
      If you want 20 full exported displacements rather than 20 recorded
      positions, set [track_length] to 21.
@@ -99,60 +100,71 @@ module Make (P : PARAMS) : Plugin.AUTOMATON =
      Trajectories that cross a periodic boundary during their acquisition
      window, including between two exported frames, are deliberately not
      exported. *)
-  
+
   let automaton_name = ref ""
-  let track_length = ref 20
-  let track_stride = ref 6
-  let track_end_max = ref 1000
-  let tracks_file = ref "tracks.xml"
+
+  let default_track_length = 20
+  let default_track_stride = 6
+  let default_track_end_max = 1000
+  let default_tracks_file = "tracks.xml"
+
+  let track_length = ref default_track_length
+  let track_stride = ref default_track_stride
+  let track_end_max = ref default_track_end_max
+  let tracks_file = ref default_tracks_file
   let save_tracks = ref false
-
-  let get_int_arg opts key default =
-    match List.assoc_opt key opts with
-    | None -> default
-    | Some s ->
-        try int_of_string s with
-        | Failure _ ->
-            invalid_arg
-              (Printf.sprintf "Invalid integer for plugin argument %s: %s" key s)
-
-let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
-
-  let get_arg opts key default =
-    match List.assoc_opt key opts with
-    | None -> default
-    | Some s -> s
-
-  let configure ~name opts =
-    save_tracks := get_bool_arg opts "SAVE_TRACKS";
-    track_length := get_int_arg opts "TRACK_LENGTH" !track_length;
-    track_stride := get_int_arg opts "TRACK_STRIDE" !track_stride;
-    track_end_max := get_int_arg opts "TRACK_END_MAX" !track_end_max;
-    automaton_name := name;
-    tracks_file := match List.assoc_opt "TRACKS_FILE" opts with
-      | Some s -> s
-      | None -> sprintf "Tracks_%s_len%d_stride%d_end%d.xml" !automaton_name 
-        !track_length !track_stride !track_end_max
-
-  let track_span = (!track_length - 1) * !track_stride
-  let latest_track_start = max 0 (!track_end_max - track_span)
 
   let generation = ref 0
   let next_agent_id = ref 0
   let warned_write_failure = ref false
 
+  let require_positive name x =
+    if x <= 0 then
+      invalid_arg (sprintf "Invalid value for %s: %d. Expected a positive integer." name x)
+
+  let configure ~name opts =
+    automaton_name := name;
+
+    save_tracks :=
+      Args.get_bool opts "SAVE_TRACKS" ~default:false;
+
+    track_length :=
+      Args.get_int opts "TRACK_LENGTH" ~default:default_track_length;
+
+    track_stride :=
+      Args.get_int opts "TRACK_STRIDE" ~default:default_track_stride;
+
+    track_end_max :=
+      Args.get_int opts "TRACK_END_MAX" ~default:default_track_end_max;
+
+    require_positive "TRACK_LENGTH" !track_length;
+    require_positive "TRACK_STRIDE" !track_stride;
+    require_positive "TRACK_END_MAX" !track_end_max;
+
+    tracks_file :=
+      Args.get opts "TRACKS_FILE"
+        ~default:
+          (sprintf "Tracks_%s_len%d_stride%d_end%d.xml"
+             !automaton_name
+             !track_length
+             !track_stride
+             !track_end_max)
+
+  let track_span () =
+    (!track_length - 1) * !track_stride
+
+  let latest_track_start () =
+    max 0 (!track_end_max - track_span ())
+
   let track_start_for_index total i =
     if total <= 1 then 0
-    else (i * latest_track_start) / (total - 1)
-
-  let cell_center (r, c) =
-    (float c +. 0.5, float r +. 0.5)
+    else (i * latest_track_start ()) / (total - 1)
 
   let track_is_complete a =
     List.length a.track >= !track_length
 
   let last_track_cycle a =
-    a.track_start + track_span
+    a.track_start + track_span ()
 
   let transition_belongs_to_track cycle a =
     (* Even when only one frame out of [track_stride] is exported, a toric
@@ -175,7 +187,7 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
         (fun coord a acc ->
            let a =
              if should_record cycle a then
-               let x, y = cell_center coord in
+               let x, y = Coord.cell_center coord in
                { a with track = (cycle, x, y) :: a.track }
              else
                a
@@ -195,14 +207,14 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
           XYMap.iter
             (fun _ a ->
                if track_is_complete a && not a.track_wrapped then begin
-                 Printf.fprintf oc
+                 fprintf oc
                    "  <particle id=\"%d\" start=\"%d\" wrapped=\"false\">\n"
                    a.id
                    a.track_start;
 
                  List.iter
                    (fun (t, x, y) ->
-                      Printf.fprintf oc
+                      fprintf oc
                         "    <detection t=\"%d\" x=\"%.6f\" y=\"%.6f\"/>\n"
                         t
                         x
@@ -226,18 +238,14 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
           ("Could not write " ^ !tracks_file ^ ": " ^ Printexc.to_string e)
       end
 
-  let wrap x n =
-    ((x mod n) + n) mod n
+  let normalize_angle angle =
+    Moore.normalize_angle ~dirs:n_dirs angle
 
-  let wrap_coord (r, c) =
-    (wrap r P.n_rows, wrap c P.n_cols)
+  let offset_of_angle angle =
+    Moore.offset_of_angle ~dirs:n_dirs angle
 
-  let raw_coord_uses_torus (r, c) =
-    r < 0 || r >= P.n_rows || c < 0 || c >= P.n_cols
-
-  let normalize_angle a =
-    let n = max 8 P.n_dirs in
-    ((a mod n) + n) mod n
+  let random_angle () =
+    Random.int n_dirs
 
   let random_signed amplitude =
     if amplitude <= 0 then 0
@@ -246,53 +254,19 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
   let drift_angle angle =
     normalize_angle (angle + random_signed P.wiggle)
 
-  (* Moore directions, using mathematical angles:
-       0 = E
-       1 = NE
-       2 = N
-       3 = NW
-       4 = W
-       5 = SW
-       6 = S
-       7 = SE
-     Rows increase downwards, hence N = -1 row.
-  *)
-  let moore = [|
-    ( 0,  1);  (* E  *)
-    (-1,  1);  (* NE *)
-    (-1,  0);  (* N  *)
-    (-1, -1);  (* NW *)
-    ( 0, -1);  (* W  *)
-    ( 1, -1);  (* SW *)
-    ( 1,  0);  (* S  *)
-    ( 1,  1);  (* SE *)
-  |]
-
-  let moore_dir_of_angle angle =
-    let n = max 8 P.n_dirs in
-    let a = normalize_angle angle in
-    let x = a * 8 in
-    let d0 = (x / n) mod 8 in
-    let rem = x mod n in
-    if Random.int n < rem then (d0 + 1) mod 8 else d0
-
-  let offset_of_angle angle =
-    moore.(moore_dir_of_angle angle)
-
   let min_turn_units () =
-    max 1 ((max 8 P.n_dirs * max 0 P.min_turn_deg) / 360)
+    max 1 ((n_dirs * max 0 P.min_turn_deg) / 360)
 
   let collision_angle angle =
-    let n = max 8 P.n_dirs in
-    let min_turn = min (n / 2) (min_turn_units ()) in
-    let span = max 1 (n - 2 * min_turn + 1) in
+    let min_turn = min (n_dirs / 2) (min_turn_units ()) in
+    let span = max 1 (n_dirs - 2 * min_turn + 1) in
     let delta = min_turn + Random.int span in
     normalize_angle (angle + delta)
 
   let spontaneous_angle angle =
     let persistence = max 1 P.persistence in
     if Random.int persistence = 0 then
-      Random.int (max 8 P.n_dirs)
+      random_angle ()
     else
       drift_angle angle
 
@@ -344,22 +318,14 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
         && c < Array.length t.(r)
         && t.(r).(c)
 
-  let shuffle a =
-    for i = Array.length a - 1 downto 1 do
-      let j = Random.int (i + 1) in
-      let tmp = a.(i) in
-      a.(i) <- a.(j);
-      a.(j) <- tmp
-    done
-
   let inside_initial_circle (r, c) =
     let cx = float P.n_cols /. 2.0 in
     let cy = float P.n_rows /. 2.0 in
 
-    (* Circle occupying roughly one quarter of the grid area.
+    (* Circle occupying roughly one eighth of the grid area.
        Area circle = pi r²
-       Area grid / 4 = rows * cols / 4
-       therefore r = sqrt(rows * cols / (4 pi)). *)
+       Area grid / 8 = rows * cols / 8
+       therefore r = sqrt(rows * cols / (8 pi)). *)
     let pi = acos(-1.0) in
     let radius =
       sqrt (float (P.n_rows * P.n_cols) /. (8.0 *. pi))
@@ -386,7 +352,7 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
     done;
 
     let coords = Array.of_list !coords in
-    shuffle coords;
+    Plugin.shuffle_array coords;
 
     let n = min seed (Array.length coords) in
     for i = 0 to n - 1 do
@@ -397,7 +363,7 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
           {
             id = id;
             age = 0;
-            angle = Random.int (max 8 P.n_dirs);
+            angle = random_angle ();
             track_start = track_start_for_index n i;
             track = [];
             track_wrapped = false;
@@ -434,7 +400,7 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
                {
                  id = id;
                  age = age;
-                 angle = Random.int (max 8 P.n_dirs);
+                 angle = random_angle ();
                  track_start = track_start_for_index total i;
                  track = [];
                  track_wrapped = false;
@@ -447,15 +413,18 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
     { a with age = min max_age (a.age + 1) }
 
   let target_after_steps occupied_old occupied_new origin angle steps =
-    let dr, dc = offset_of_angle angle in
+    let offset = offset_of_angle angle in
 
     let rec loop coord k =
       if k = 0 then Some (coord, false)
       else
-        let r, c = coord in
-        let raw_next = (r + dr, c + dc) in
-        let used_torus = raw_coord_uses_torus raw_next in
-        let next = wrap_coord raw_next in
+        let next, used_torus =
+          Coord.move_with_torus_flag
+            ~rows:P.n_rows
+            ~columns:P.n_cols
+            coord
+            offset
+        in
 
         (* A zoospore collides if the next position is occupied in the
            previous configuration, or if another zoospore has already claimed
@@ -489,7 +458,7 @@ let get_bool_arg opts key = (get_int_arg opts key 0) <> 0
       |> Array.of_list
     in
 
-    shuffle items;
+    Plugin.shuffle_array items;
 
     let next_generation = !generation + 1 in
 
