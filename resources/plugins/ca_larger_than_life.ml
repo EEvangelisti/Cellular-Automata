@@ -186,7 +186,7 @@ let _ =
   List.iter (fun ca_line ->
     sscanf ca_line " AUTOMATON %S: %d %b S%d..%d B%d..%d" 
       (fun id range active s_ini s_end b_ini b_end ->
-        Hashtbl.add Plugin.ca_database ("LGTL" ^ id) (
+        Hashtbl.add Plugin.ca_database ("LGTL-" ^ id) (
          make_module
           ~birth:(b_ini, b_end) 
           ~death:(s_ini, s_end)
