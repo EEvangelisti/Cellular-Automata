@@ -185,7 +185,7 @@ let load_plugins () =
   Array.iter (fun file ->
     if Filename.check_suffix file ".cmxs" then begin
       let path = Filename.concat dir file in
-      printf "(Automates) Extension %s.\n%!" path;
+      printf "(Automates) INFO: Loading extension %s.\n%!" path;
       Dynlink.loadfile path  
     end
   ) (Sys.readdir dir) 
