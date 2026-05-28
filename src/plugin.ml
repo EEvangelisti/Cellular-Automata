@@ -228,3 +228,57 @@ module Coord = struct
   let to_string (r, c) =
     Printf.sprintf "(%d,%d)" r c
 end
+
+
+
+module Moore = struct
+  let offsets =
+    [|
+      ( 0,  1);  (* E  *)
+      (-1,  1);  (* NE *)
+      (-1,  0);  (* N  *)
+      (-1, -1);  (* NW *)
+      ( 0, -1);  (* W  *)
+      ( 1, -1);  (* SW *)
+      ( 1,  0);  (* S  *)
+      ( 1,  1);  (* SE *)
+    |]
+
+  let check_dirs ~dirs =
+    if dirs <= 0 then
+      invalid_arg
+        (Printf.sprintf "Moore: invalid number of directions: %d" dirs)
+
+  let normalize_angle ~dirs angle =
+    check_dirs ~dirs;
+    let a = angle mod dirs in
+    if a < 0 then a + dirs else a
+
+  let dir_of_angle ~dirs angle =
+    check_dirs ~dirs;
+    let a = normalize_angle ~dirs angle in
+
+    (* Nearest Moore sector.
+       With dirs = 360:
+       0°   -> E
+       45°  -> NE
+       90°  -> N
+       135° -> NW
+       etc.
+
+       The [+ dirs / 2] term implements rounding to the nearest sector
+       after scaling by 8.
+    *)
+    ((8 * a + dirs / 2) / dirs) mod 8
+
+  let offset_of_angle ~dirs angle =
+    offsets.(dir_of_angle ~dirs angle)
+end
+
+let shuffle_array a =
+  for i = Array.length a - 1 downto 1 do
+    let j = Random.int (i + 1) in
+    let tmp = a.(i) in
+    a.(i) <- a.(j);
+    a.(j) <- tmp
+  done

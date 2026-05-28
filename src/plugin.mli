@@ -131,4 +131,30 @@ module Coord : sig
   val to_string : t -> string
 end
 
+(** {2 Moore neighbordhood} *)
 
+module Moore : sig
+  val offsets : Coord.t array
+  (** Moore-neighborhood offsets in trigonometric order:
+      E, NE, N, NW, W, SW, S, SE.
+
+      Coordinates use the usual matrix convention: row, column.
+  *)
+
+  val normalize_angle : dirs:int -> int -> int
+  (** [normalize_angle ~dirs a] returns [a] modulo [dirs], in [0, dirs - 1]. *)
+
+  val dir_of_angle : dirs:int -> int -> int
+  (** Converts an internal angle into one of the 8 Moore directions.
+
+      Angle 0 points east.
+      Angles increase counter-clockwise:
+      east, north-east, north, north-west, etc.
+  *)
+
+  val offset_of_angle : dirs:int -> int -> Coord.t
+  (** Converts an internal angle directly into a Moore-neighborhood offset. *)
+end
+
+val shuffle_array : 'a array -> unit
+(** Randomly shuffles an array in place, using Fisher-Yates. *)
